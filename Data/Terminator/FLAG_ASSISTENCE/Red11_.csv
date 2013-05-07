@@ -1,0 +1,5 @@
+BotName, Behaviour, PositionX, PositionY, OrientationX, OrientationY,  DistanceToEnemyFlag, DistanceToOwnFlag, DistanceToEnemyBase, DistanceToOwnBase, DistanceToEnemyFlagScore, DistanceToOwnFlagScore, DistanceToEnemyFlagSpawn, DistanceToOwnFlagSpawn, Visibility, DistanceToNearestEnemy, GameState
+
+
+1, 3, 38.54864, 7.865716, 0.28263503, 0.9592275, 39, 52, 18, 6, 73, 84, 39, 52, 29, 1000000, 3
+1, 3, 38.724564, 8.194575, 0.5222932, 0.8527659, 40, 51, 17, 7, 72, 83, 40, 51, 33, 13, 3
