@@ -165,11 +165,15 @@ public class MyCommander extends SandboxCommander {
 
     }
     
-    // Returns one of the following game states:
-    // Flags at their spawn points (base)
-    // Own flag captured (not at base)
-    // Enemy flag captured (not at base)
-    // Both flags in game (not at base)
+    /*
+     * Author: Inge Becht
+     * Returns one of the following game states:
+     * Flags at their spawn points (base)
+     * Own flag captured (not at base)
+     * Enemy flag captured (not at base)
+     * Both flags in game (not at base)
+     * 
+     */
     public gameState current_flagstate()
     {
     	FlagInfo f = gameInfo.getEnemyFlagInfo();
@@ -194,7 +198,10 @@ public class MyCommander extends SandboxCommander {
     	}
 		return b;
     }
-    
+    /*
+     * Author: Inge Becht
+     * Writes a string at a time to the specified file in path
+     */
     public void write_to_file(String path, String Information, boolean new_behaviour)
     {
     	File f = new File(path);
@@ -230,18 +237,22 @@ public class MyCommander extends SandboxCommander {
 			out.close();
 			read.close();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
     }
     
-    // Calculates absolute distance between bot and position
+    /*
+     * Author: Inge Becht
+     *Calculates absolute distance between bot and position
+     * 
+     */
     public int calculate_distance(MyBotInfo bot, Vector2 pos)
     {
     	return bot.getDistance(pos);
     }
     
     /*
+     * Author: Inge Becht
      * Writes information about the input bot to file
      * 
      */
