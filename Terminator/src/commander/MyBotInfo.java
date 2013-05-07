@@ -32,6 +32,8 @@ public class MyBotInfo {
 	public InterceptInfo flagInterceptInfo = new InterceptInfo();
 	public GDistance distance;
 	
+
+	
 	public MyBotInfo copy() {
 	   MyBotInfo b = new MyBotInfo();
 	   b.name = name;

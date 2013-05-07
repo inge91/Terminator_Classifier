@@ -182,7 +182,6 @@ public class MyCommander extends SandboxCommander {
    
     	gameState b = gameState.FLAGS_BASE;
     	
-
     	// If both flag positions don't correspond with their spawn position, set BOTH_CAPTURED
     	if( f.getPosition() != m.get("Terminator") && f.getPosition() != m.get(enemy_name) )
     	{
@@ -205,10 +204,11 @@ public class MyCommander extends SandboxCommander {
     public void write_to_file(String path, String Information, boolean new_behaviour)
     {
     	File f = new File(path);
+    	File p = new File("../Terminator_Classifier/Data/Terminator/ALL.csv");
     	
     	// Create directory in case it doesn't exist
     	f.getParentFile().mkdirs();
-    	
+    	p.getParentFile().mkdirs();
     	try {
 			f.createNewFile();
 			FileWriter fstream = new FileWriter(path, true);
@@ -217,13 +217,13 @@ public class MyCommander extends SandboxCommander {
 			BufferedReader read = new BufferedReader(fstream2);
 			// In case the file is still empty add information line
 			if(read.readLine() == null)
-			{	out.write("#The sequence: Bot Name, Behaviour, Position X, Position Y, Orientation X, " +
-					"Orientation Y,  " + 
-					"Distance to enemy flag, Distance to own flag, " +
-					"Distance to enemy Base, Distance to own Base, " +
-					"Distance to enemy flag score, Distance to own flag score, " +
-					"Distance to enemy flag spawn, Distance to own flag, " +
-					"visibility, Distance to nearest enemy, Game State\n");	
+			{	out.write("BotName, Behaviour, PositionX, PositionY, OrientationX, " +
+					"OrientationY,  " + 
+					"DistanceToEnemyFlag, DistanceToOwnFlag, " +
+					"DistanceToEnemyBase, DistanceToOwnBase, " +
+					"DistanceToEnemyFlagScore, DistanceToOwnFlagScore, " +
+					"DistanceToEnemyFlagSpawn, DistanceToOwnFlagSpawn, " +
+					"Visibility, DistanceToNearestEnemy, GameState\n");	
 				out.newLine();
 		
 			}
@@ -239,6 +239,37 @@ public class MyCommander extends SandboxCommander {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+    	
+    	
+    	//Also put information in single file for training purposes.
+
+    	try {
+			p.createNewFile();
+			FileWriter fstream = new FileWriter("../Terminator_Classifier/Data/Terminator/ALL.csv", true);
+			FileReader fstream2 = new FileReader("../Terminator_Classifier/Data/Terminator/ALL.csv");
+			BufferedWriter out = new BufferedWriter(fstream);
+			BufferedReader read = new BufferedReader(fstream2);
+			// In case the file is still empty add information line
+			if(read.readLine() == null)
+			{	out.write("BotName, Behaviour, PositionX, PositionY, OrientationX, " +
+					"OrientationY,  " + 
+					"DistanceToEnemyFlag, DistanceToOwnFlag, " +
+					"DistanceToEnemyBase, DistanceToOwnBase, " +
+					"DistanceToEnemyFlagScore, DistanceToOwnFlagScore, " +
+					"DistanceToEnemyFlagSpawn, DistanceToOwnFlagSpawn, " +
+					"Visibility, DistanceToNearestEnemy, GameState\n");	
+				out.newLine();
+		
+			}
+			
+			out.write(Information);
+			out.newLine();
+			out.close();
+			read.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+    	
     }
     
     /*
@@ -259,7 +290,8 @@ public class MyCommander extends SandboxCommander {
     public void collect_data(Behaviours b, MyBotInfo bot)
     {
     	
-    	String path = "../Data/Terminator/";
+    
+    	String path = "../Terminator_Classifier/Data/Terminator/";
     	String bot_name = bot.name;
     	Vector2 bot_pos = bot.bot.getPosition();
     	gameState state = current_flagstate();
@@ -316,15 +348,15 @@ public class MyCommander extends SandboxCommander {
     	System.out.println();
     	
     	// Construct a string containing all information necessary for classification
-    	String information = bot_name.substring(bot_name.length()-1) + " " + b.ordinal() + " "  + 
-    			Float.toString(bot_pos.getX()) + " " + Float.toString(bot_pos.getY()) + 
-    			" " + Float.toString(bot_facing.getX()) + " " + Float.toString(bot_facing.getY()) +
-    			" " + distance_enemy_flag + " " + distance_my_flag + 
-    			" " + distance_enemy_spawn + " " + distance_me_spawn +
-    			" " + distance_enemy_score + " " + distance_me_score + 
-    			" " + distance_enemy_flagbase+ " " + distance_me_flagbase + 
-    			" " + visibility + " " + nearest_enemy +
-      			" " + state.ordinal();
+    	String information = bot_name.substring(bot_name.length()-1) + ", " + b.ordinal() + ", "  + 
+    			Float.toString(bot_pos.getX()) + ", " + Float.toString(bot_pos.getY()) + 
+    			", " + Float.toString(bot_facing.getX()) + ", " + Float.toString(bot_facing.getY()) +
+    			", " + distance_enemy_flag + ", " + distance_my_flag + 
+    			", " + distance_enemy_spawn + ", " + distance_me_spawn +
+    			", " + distance_enemy_score + ", " + distance_me_score + 
+    			", " + distance_enemy_flagbase + ", " + distance_me_flagbase + 
+    			", " + visibility + ", " + nearest_enemy +
+      			", " + state.ordinal();
     	
     	// Check if a switch in behaviour has occured
     	Behaviours past_b = last_behaviour.remove(bot.name);
@@ -335,7 +367,7 @@ public class MyCommander extends SandboxCommander {
     	last_behaviour.put(bot.name, b);
     	
     	String b_string = b.toString();
-    	path += b_string +"/" + bot_name + "_" + ".txt";
+    	path += b_string +"/" + bot_name + "_" + ".csv";
     	write_to_file(path, information, new_behaviour);
     }
 
@@ -477,6 +509,21 @@ public class MyCommander extends SandboxCommander {
         buildGraph();
     }
 
+    /*
+     * Author: Inge Bect
+     * Check if string is in the list
+     */
+    public boolean is_in_list(List<String> list, String s)
+    {
+    	for(String string: list)
+    	{
+    		if(string.equalsIgnoreCase(s))
+    		{
+    			return true;
+    		}
+    	}
+    	return false;
+    }
 
     //------------------------------------------------------------------------------------------------------
     // TICK
@@ -493,6 +540,32 @@ public class MyCommander extends SandboxCommander {
     @Override
     public void tick() {
         ++nrTicks;
+        TeamInfo team = gameInfo.getMyTeamInfo();
+        List<String> bot_names = team.getMembers();
+        
+        List<String> already_added = new ArrayList<String>();
+        
+        // Loop thorugh my bots
+        for(String bot_name: bot_names)
+        {
+        	BotInfo bot_info= gameInfo.getBotInfo(bot_name);
+       
+        	List<String> visible_enemies = bot_info.getVisibleEnemies();
+        	// All seen bots need to be collected data on (but only if not done already)
+        	for(String enemy_name: visible_enemies)
+        	{
+        		if(is_in_list(already_added, enemy_name)){
+        			continue;
+        		}
+        		else{
+        			already_added.add(enemy_name);
+        			//collect_data(Behaviours.MISC, gameInfo.getBotInfo(enemy_name));
+        		}
+        		
+        	}
+        }
+        
+        
         try {
             myTick();
         } catch (RuntimeException e) {
