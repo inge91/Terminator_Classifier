@@ -41,7 +41,10 @@ public class MyCommander extends SandboxCommander {
     List<MyBotInfo> enemyBots = new ArrayList<MyBotInfo>();
     List<EnemyBotInfo> enemyLocations = new ArrayList<EnemyBotInfo>();
     Map<String, MyBotInfo> allBots = new HashMap<String, MyBotInfo>();
-
+    
+    //Author: Inge Becht. Define enemy bots with MyBotInfo
+    List<MyBotInfo> myEnemyBots = new ArrayList<MyBotInfo>();
+    
     /** set of names of all visible enemies */
     Set<String> visibleEnemies = new HashSet<String>();
 
@@ -287,90 +290,230 @@ public class MyCommander extends SandboxCommander {
      * Writes information about the input bot to file
      * 
      */
-    public void collect_data(Behaviours b, MyBotInfo bot)
+    public void collect_data(Behaviours b, BotInfo bot)
     {
-    	
-    
+
     	String path = "../Terminator_Classifier/Data/Terminator/";
-    	String bot_name = bot.name;
-    	Vector2 bot_pos = bot.bot.getPosition();
+    	
+    	String bot_name = bot.getName();
+    	Vector2 bot_pos = bot.getPosition();
     	gameState state = current_flagstate();
-    	// Get distance to all different elements
-    	int distance_enemy_flag = calculate_distance(bot, gameInfo.getEnemyFlagInfo().getPosition());
-    	int distance_my_flag = calculate_distance(bot, gameInfo.getMyFlagInfo().getPosition());
+    	// Get distance to all different elements   	
+    	int distance_enemy_flag = breadth_first(bot_pos, enemyFlagLocation).size();
+    	int distance_my_flag = breadth_first(bot_pos, myFlagLocation).size();
     	
     	// Distance to enemy spawn location
-    	int distance_enemy_spawn = calculate_distance
-    			(bot, levelInfo.getBotSpawnAreas().get(gameInfo.getEnemyTeam()).getCenter());
-    	int distance_me_spawn = calculate_distance
-    			(bot, levelInfo.getBotSpawnAreas().get(gameInfo.getTeam()).getCenter());
+    	int distance_enemy_spawn = breadth_first(bot_pos, enemyBotSpawnLocation).size();
+    	int distance_my_spawn = breadth_first(bot_pos, myBotSpawnLocation).size();
     	
     	// Distance to flag sore positions
-    	int distance_enemy_score = calculate_distance
-    			(bot, levelInfo.getFlagScoreLocations().get(gameInfo.getEnemyTeam()));
-    	int distance_me_score = calculate_distance
-    			(bot, levelInfo.getFlagScoreLocations().get(gameInfo.getTeam()));
-    	
+    	int distance_enemy_score = breadth_first(bot_pos, enemyFlagScoreLocation).size();
+    	int distance_me_score = breadth_first(bot_pos, myFlagScoreLocation).size();
+    
     	// Distance to flagbases
-    	int distance_enemy_flagbase = calculate_distance
-    			(bot, levelInfo.getFlagSpawnLocations().get(gameInfo.getEnemyTeam()));
-    	int distance_me_flagbase = calculate_distance
-    			(bot, levelInfo.getFlagSpawnLocations().get(gameInfo.getTeam()));
+    	int distance_enemy_flagbase = breadth_first(bot_pos, enemyFlagSpawnLocation).size();
+    	int distance_me_flagbase = breadth_first(bot_pos, myFlagSpawnLocation).size();
+    		
     	
     	// Visibility of tile bot is on
-    	Tile t = Tile.get( (int) bot.bot.getPosition().getX(), (int) bot.bot.getPosition().getY());
+    	Tile t = Tile.get( (int) bot.getPosition().getX(), (int) bot.getPosition().getY());
     	int visibility = t.getVisibilityPercentage();
     
     	// Orientation of the bot
-    	Vector2 bot_facing = bot.bot.getFacingDirection();
+    	Vector2 bot_facing = bot.getFacingDirection();
     	
-    	// TODO: can i extract map name? 
+    	int nearest_enemy;
     	
-    	//OVERWRITE OF DISTANCE VARIABLES IN TILES
-    	Distance d = calcWalkDistance(bot.bot.getPosition(), unitCost);
+    	if(bot.getTeam()== "Terminator")
+    	{
+    		for(MyBotInfo myBot: myBots)
+    		{
+    			if(myBot.name == bot_name)
+    			{
+    				nearest_enemy = distToNearestEnemy(myBot);
+    			}
+    		}
+    		
+    	}
+    	//In case bot is really one of my team 
+    	// TODO: fix distToNearestEnemy
+    	nearest_enemy = 0;
     	
-    	distance_enemy_flag = d.getDistance(enemyFlagLocation);
-    	distance_my_flag = d.getDistance(myFlagLocation);
+    	//System.out.printf(" Distance to my flag spawn %d\n", distance_me_flagbase );
+    	//System.out.printf(" Distance to my flag deliver %d\n", distance_me_score);
     	
-    	distance_enemy_spawn = d.getDistance(enemyBotSpawnLocation);
-    	distance_me_spawn = d.getDistance(myBotSpawnLocation);
-    	
-    	distance_enemy_score = d.getDistance(enemyFlagScoreLocation);
-    	distance_me_score = d.getDistance(myFlagScoreLocation);
-    	
-    	distance_enemy_flagbase = d.getDistance(enemyFlagSpawnLocation);
-    	distance_me_flagbase = d.getDistance(myFlagSpawnLocation);
-    	int nearest_enemy =  distToNearestEnemy(bot);
-    	
-    	System.out.printf(" Distance to my flag spawn %d\n", distance_me_flagbase );
-    	System.out.printf(" Distance to my flag deliver %d\n", distance_me_score);
-    	
-    	System.out.println();
+    	//System.out.println();
     	
     	// Construct a string containing all information necessary for classification
     	String information = bot_name.substring(bot_name.length()-1) + ", " + b.ordinal() + ", "  + 
     			Float.toString(bot_pos.getX()) + ", " + Float.toString(bot_pos.getY()) + 
     			", " + Float.toString(bot_facing.getX()) + ", " + Float.toString(bot_facing.getY()) +
     			", " + distance_enemy_flag + ", " + distance_my_flag + 
-    			", " + distance_enemy_spawn + ", " + distance_me_spawn +
+    			", " + distance_enemy_spawn + ", " + distance_my_spawn +
     			", " + distance_enemy_score + ", " + distance_me_score + 
     			", " + distance_enemy_flagbase + ", " + distance_me_flagbase + 
     			", " + visibility + ", " + nearest_enemy +
       			", " + state.ordinal();
     	
     	// Check if a switch in behaviour has occured
-    	Behaviours past_b = last_behaviour.remove(bot.name);
+    	Behaviours past_b = last_behaviour.remove(bot.getName());
     	boolean new_behaviour;
     	new_behaviour = (b == past_b) ? false: true;
     
     	// Update new last behaviour
-    	last_behaviour.put(bot.name, b);
+    	last_behaviour.put(bot.getName(), b);
     	
     	String b_string = b.toString();
     	path += b_string +"/" + bot_name + "_" + ".csv";
     	write_to_file(path, information, new_behaviour);
     }
 
+    
+    /*
+     * Author: Inge Becht
+     * Returns tiles that can be reached from t and are walkable
+     */
+    public List<Tile> possible_actions(Tile p)
+    {
+    	List<Tile> actions = new ArrayList<Tile>();
+    	Tile temp;
+    	// Check for all possible movement if it is valid
+    	if(Tile.isValid(p.x + 1, p.y))
+    	{
+    		temp = Tile.get(p.x + 1, p.y);
+    		if(temp.isWalkable){
+    			actions.add(temp);
+    		}
+    	}
+    	if(Tile.isValid(p.x - 1, p.y))
+    	{
+    		temp = Tile.get(p.x - 1, p.y);
+    		if(temp.isWalkable){
+    			actions.add(temp);
+    		}
+    	}
+    	if(Tile.isValid(p.x, p.y + 1))
+    	{
+    		temp = Tile.get(p.x, p.y + 1);
+    		if(temp.isWalkable){
+    			actions.add(temp);
+    		}
+    	}
+    	if(Tile.isValid(p.x, p.y - 1))
+    	{
+    		temp = Tile.get(p.x, p.y - 1);
+    		if(temp.isWalkable){
+    			actions.add(temp);
+    		}
+    	}
+    	
+		return actions;
+    }
+    
+    /*
+     * Author: Inge Becht
+     * Check if tile t is contained within the Arraylist q
+     */
+    public boolean contains(List<Tile> h, Tile t)
+    {
+    	for(Tile l: h)
+    	{
+    		if(l.x == t.x && t.y == l.y)
+    		{
+    			return true;
+    		}
+    	}
+    	
+    	return false;
+    }
+    
+    /*
+     * Author: Inge Becht
+     * Print elements from a list
+     */
+    public void print_list(List<Tile> elements)
+    {
+    	for(Tile element: elements)
+    	{
+    		System.out.printf("(%d, %d)\n", element.x, element.y);
+    	}
+    }
+     public void print_stack(Stack<Tile> elements)
+     {
+    	 for(Tile element: elements )
+    	 {
+    		 System.out.printf("(%d, %d) ", element.x, element.y);
+    	 }
+    	 System.out.println();
+     }
+    
+    public void print_queue(Queue<Stack<Tile>> q)
+    {
+    	for(Stack<Tile> t: q)
+    	{
+    		print_stack(t);
+    		
+    	}
+    }
+    
+    /*
+     * Author: Inge Becht
+     * Creates a breadth first search for finding the distance between two particular tiles. 
+     */
+    public List<Tile> breadth_first(Vector2 begin, Vector2 end){
+    	Tile t_end = Tile.get(end);
+    	
+    	Stack<Tile> path = new Stack<Tile>();
+    	path.add(Tile.get(begin));
+    	
+    	// Keeps history of visited tiles
+    	List<Tile> h = new ArrayList<Tile>();
+    	h.add(Tile.get(begin));
+    	
+    	// Keeps trajectory
+    	Queue<Stack<Tile>> q = new LinkedList<Stack<Tile>>();
+    	q.add(path);
+    	
+    	while(q.size() != 0)
+    	{
+    		//System.out.println("Content of queue:");
+    		//print_queue(q);
+    		Stack<Tile> p = q.poll();
+    		//System.out.println("Remove from queuq:");
+    		//print_stack(p);
+    		// If the last element of the first in the queue is the end
+    		// point, return this path
+    		if(p.peek().x == t_end.x && p.peek().y == t_end.y){
+    			return p;
+    		}
+    		else{
+    			// returns possible actions that can be made from the last position
+    			List<Tile> actions = possible_actions(p.peek());
+    			for(Tile action: actions)
+    			{
+    				//System.out.printf("Possible new actions from (%d, %d): ", p.peek().x, p.peek().y);
+    				//print_list(actions);
+    				
+    				if(!contains(h, action)){
+    					
+    				
+    				//	System.out.println("This action is new");
+    					
+    					p.add(action);
+    					
+    					q.add((Stack<Tile>) p.clone());
+    					h.add(action);
+    					p.pop();
+    				}
+    			}
+    		}
+    	}
+    	
+    	return null;
+    	
+    }
+    
+    
     /**
      * Called when the server sends the "initialize" message to the commander.
      * Use this function to setup your bot before the game starts. You can also
@@ -542,14 +685,17 @@ public class MyCommander extends SandboxCommander {
         ++nrTicks;
         TeamInfo team = gameInfo.getMyTeamInfo();
         List<String> bot_names = team.getMembers();
+       
         
         List<String> already_added = new ArrayList<String>();
         
-        // Loop thorugh my bots
+        //TODO: Fix this code
+        // Loop through my bots
         for(String bot_name: bot_names)
         {
-        	BotInfo bot_info= gameInfo.getBotInfo(bot_name);
        
+        	BotInfo bot_info= gameInfo.getBotInfo(bot_name);
+        	
         	List<String> visible_enemies = bot_info.getVisibleEnemies();
         	// All seen bots need to be collected data on (but only if not done already)
         	for(String enemy_name: visible_enemies)
@@ -698,11 +844,11 @@ public class MyCommander extends SandboxCommander {
                     } else if (distance < levelInfo.getFiringDistance() + 2*levelInfo.getRunningSpeed()) {
                         if (roleChanged || currState != BotInfo.STATE_ATTACKING) {
                             issueAttackCmd(bot, enemy.getPosition(), "attack enemy");
-                            collect_data(Behaviours.ENEMY_ATTACK, bot);
+                            collect_data(Behaviours.ENEMY_ATTACK, bot.bot);
                         }
                     } else if (roleChanged || currState != BotInfo.STATE_CHARGING) {
                         issueChargeCmd(bot, enemy.getPosition(), "charge enemy");
-                        	collect_data(Behaviours.ENEMY_ATTACK, bot);
+                        	collect_data(Behaviours.ENEMY_ATTACK, bot.bot);
                     }
                     break;
                 case ATTACKER:
@@ -727,7 +873,7 @@ public class MyCommander extends SandboxCommander {
                                 List<Tile> path = bot.getPathTo(attackGoal);//distToAttackGoal.getPathFrom(botInfo.getPosition());
                                 //issueChargeOrAttack(bot, path, "to flag spawn");
                                 issueChargeOrAttack(bot, path, "ATTACK FLAG LIKE CRAY CRAY");
-                                collect_data(Behaviours.FLAG_ATTACK, bot);
+                                collect_data(Behaviours.FLAG_ATTACK, bot.bot);
                             } else if (botInfo.getState() == BotInfo.STATE_IDLE || bot.mission.equals(onAttackSpotMissionName)) {
                                 if (botInfo.getPosition().distance(enemyFlagDefenders.defendLocation.toVector2()) < 1.2f) {
                                     // on defend location
@@ -736,7 +882,7 @@ public class MyCommander extends SandboxCommander {
                                     // on flag spawn
                                     //turnDefendLocation(bot, enemyFlagSpawnLocation, "enemy flag");
                                     turnDefendLocation(bot, enemyFlagSpawnLocation, "enemy flag");
-                                    collect_data(Behaviours.FLAG_ATTACK, bot);
+                                    collect_data(Behaviours.FLAG_ATTACK, bot.bot);
                                 }
                             }
                         } else {
@@ -760,7 +906,7 @@ public class MyCommander extends SandboxCommander {
                 case DEFENDER:
                     {
                     	// Write to file
-                    	collect_data(Behaviours.FLAG_DEFEND, bot);
+                    	collect_data(Behaviours.FLAG_DEFEND, bot.bot);
                         BotInfo defender = botInfo;
                         float requiredDist = 0.8f;
                         if (myFlagDefendLocation == myFlagLocation) {
@@ -859,7 +1005,7 @@ public class MyCommander extends SandboxCommander {
                                 bot.enableNewCommand();
                                 //issueMoveCmd(bot, wayPoints, runHomeMission);
                                 issueMoveCmd(bot, wayPoints, "RUN HOME LIKE CRAY CRAY");
-                                collect_data(Behaviours.DELIVER_FLAG, bot);
+                                collect_data(Behaviours.DELIVER_FLAG, bot.bot);
                                     }
                         } else {
                             // help flag carrier
@@ -871,7 +1017,7 @@ public class MyCommander extends SandboxCommander {
                                 bot.mission = ""; // will force a new command
                             }
                             issueChargeCmd(bot, wayPoints, "HELP CARRIER LIKE CRAY CRAY");
-                            collect_data(Behaviours.FLAG_ASSISTENCE, bot);
+                            collect_data(Behaviours.FLAG_ASSISTENCE, bot.bot);
                         }
                         //Vector2 target = levelInfo.getFlagScoreLocations().get(myTeam);
                         //issueMoveCmd(bot, target, "running home");
@@ -910,7 +1056,7 @@ public class MyCommander extends SandboxCommander {
                                                // calculate a secure path
                                                path = bot.getPathTo(target.toVector2());
                                                issueChargeOrAttack(bot, path, "to ambush");
-                                               collect_data(Behaviours.AMBUSH, bot);
+                                               collect_data(Behaviours.AMBUSH, bot.bot);
                                            } else {
                                                Tile t = Tile.get(botInfo.getPosition());
                                                AmbushPoint ambushPoint = null;
@@ -924,7 +1070,7 @@ public class MyCommander extends SandboxCommander {
                                                    Vector2 target = botInfo.getPosition().add(ambushPoint.bestFacingDirection);
                                                    //issueDefendCmd(bot, target, "ambush");
                                                    issueDefendCmd(bot, target, "ambush LIKE CRAY CRAY");
-                                                   collect_data(Behaviours.AMBUSH, bot);
+                                                   collect_data(Behaviours.AMBUSH, bot.bot);
                                                } else {
                                                    //throw new RuntimeException("Tile " + t + " is not an ambush point, bot = " + bot);
                                                    // should never happen
@@ -932,7 +1078,7 @@ public class MyCommander extends SandboxCommander {
                                                        .findRandomFreePositionInBox(levelInfo.getLevelArea());
                                                    //issueChargeOrAttack(bot, target, "random patrol");
                                                    issueChargeOrAttack(bot, target, "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXxrandom patrol LIKE CRAY CRAY");
-                                                   collect_data(Behaviours.PATROL, bot);
+                                                   collect_data(Behaviours.PATROL, bot.bot);
                                                }
                                            }
                                        }
@@ -1017,6 +1163,27 @@ public class MyCommander extends SandboxCommander {
     // SETMYBOTS
     //------------------------------------------------------------------------------------------------------
 
+    /*
+     * Author: Inge Becht
+     * We want some MyBotInfo knowledge for the opponent
+     * bots. Here we fill myEnemyBots with that information 
+     */
+    void setMyEnemyBots()
+    {
+    	for (BotInfo bot : gameInfo.getBots().values()) {
+            if (bot.getTeam().equals(enemyTeam)) {
+                MyBotInfo myBot = new MyBotInfo();
+                myBot.name = bot.getName();
+                myBot.realRole = myBot.proposedRole = MyBotRole.DEAD;
+                myBot.timeOfLastOrder = -1000;
+                myBot.bot = bot;
+                myEnemyBots.add(myBot);
+              
+            }
+        }
+       // calcMyEnemyBotDistances();
+    }
+    
     void setMyBots() {
         if (myBots.isEmpty()) {
             allBots.clear();
@@ -1706,10 +1873,10 @@ public class MyCommander extends SandboxCommander {
            
             if(goal == "enemy flag")
             {
-            	collect_data(Behaviours.FLAG_ATTACK, bot);
+            	collect_data(Behaviours.FLAG_ATTACK, bot.bot);
             }
             else{
-            	collect_data(Behaviours.FLAG_DEFEND, bot);
+            	collect_data(Behaviours.FLAG_DEFEND, bot.bot);
             
             }
             issueAttackCmd(bot, wayPoints, null, "LIKE CRAY CRAY turn-defend " + goal);
@@ -1762,10 +1929,10 @@ public class MyCommander extends SandboxCommander {
                 // hunt the bot down, we will surprise him
                 if (nrLivingEnemies >= 6 || gameSpeed > 100) {
                     issueAttackCmd(bot, wayPoints, null, "attackstalk " + nearestEnemy.getName());
-                    collect_data(Behaviours.STALK, bot);
+                    collect_data(Behaviours.STALK, bot.bot);
                 } else {
                     issueChargeCmd(bot, wayPoints, "stalk " + nearestEnemy.getName());
-                    collect_data(Behaviours.STALK, bot);
+                    collect_data(Behaviours.STALK, bot.bot);
                 }
             } else {
                 // enemy bot and my bot on collision course; rather attack
