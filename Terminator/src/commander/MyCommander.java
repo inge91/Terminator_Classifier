@@ -115,9 +115,11 @@ public class MyCommander extends SandboxCommander {
 
     int gameSpeed = 1000;
     Distance shortestDistToMyBotSpawnLocation;
+    Distance shortestDistToEnemyBotSpawnLocation;
     Distance shortestDistToMyFlagLocation;
     Distance shortestDistToMyFlagScoreLocation;
     Distance shortestDistToMyFlagSpawnLocation;
+    Distance shortestDistToEnemyFlagLocation;
     Distance shortestDistToEnemyFlagScoreLocation;
     Distance shortestDistToEnemyFlagSpawnLocation;
 
@@ -254,13 +256,12 @@ public class MyCommander extends SandboxCommander {
 			BufferedReader read = new BufferedReader(fstream2);
 			// In case the file is still empty add information line
 			if(read.readLine() == null)
-			{	out.write("BotName, Behaviour, PositionX, PositionY, OrientationX, " +
-					"OrientationY,  " + 
+			{	out.write("BotName, Behaviour, PositionX, PositionY, Orientation, " +
 					"DistanceToEnemyFlag, DistanceToOwnFlag, " +
 					"DistanceToEnemyBase, DistanceToOwnBase, " +
 					"DistanceToEnemyFlagScore, DistanceToOwnFlagScore, " +
 					"DistanceToEnemyFlagSpawn, DistanceToOwnFlagSpawn, " +
-					"Visibility, DistanceToNearestEnemy, GameState\n");	
+					"Visibility, DistanceToNearestEnemy, seesEnemy, GameState, gameTime\n");	
 				out.newLine();
 		
 			}
@@ -298,23 +299,66 @@ public class MyCommander extends SandboxCommander {
     	String bot_name = bot.getName();
     	Vector2 bot_pos = bot.getPosition();
     	gameState state = current_flagstate();
-    	// Get distance to all different elements   	
-    	int distance_enemy_flag = breadth_first(bot_pos, enemyFlagLocation).size();
-    	int distance_my_flag = breadth_first(bot_pos, myFlagLocation).size();
+
+    	// All distances that need to be calculated
+    	int distance_enemy_flag = 0, distance_my_flag = 0;
+    	int distance_enemy_spawn = 0, distance_my_spawn = 0;
+    	int distance_enemy_flagbase = 0, distance_me_flagbase = 0;
+    	int distance_enemy_score = 0, distance_me_score = 0;
     	
-    	// Distance to enemy spawn location
-    	int distance_enemy_spawn = breadth_first(bot_pos, enemyBotSpawnLocation).size();
-    	int distance_my_spawn = breadth_first(bot_pos, myBotSpawnLocation).size();
-    	
-    	// Distance to flag sore positions
-    	int distance_enemy_score = breadth_first(bot_pos, enemyFlagScoreLocation).size();
-    	int distance_me_score = breadth_first(bot_pos, myFlagScoreLocation).size();
+    	int nearest_seen_enemy;
     
-    	// Distance to flagbases
-    	int distance_enemy_flagbase = breadth_first(bot_pos, enemyFlagSpawnLocation).size();
-    	int distance_me_flagbase = breadth_first(bot_pos, myFlagSpawnLocation).size();
-    		
     	
+    	nearest_seen_enemy = DistanceNearestVisibleEnemy(bot);
+    	
+    	if(bot.getTeam().equals(myTeam))
+    	{
+    			
+        		
+    			 	// Get distance to all different elements   	
+    	        	distance_my_flag = shortestDistToMyFlagLocation.getDistance(bot_pos);   	
+    	        	distance_enemy_flag = shortestDistToEnemyFlagLocation.getDistance(bot_pos);
+    	        	
+    	        	// Distance to enemy spawn location
+    	        	distance_enemy_spawn = shortestDistToEnemyBotSpawnLocation.getDistance(bot_pos);
+    	        	distance_my_spawn = shortestDistToMyBotSpawnLocation.getDistance(bot_pos);
+    	        	
+    	        	// Distance to flag sore positions
+    	        	
+    	        	distance_enemy_score = shortestDistToEnemyFlagScoreLocation.getDistance(bot_pos);
+    	        	distance_me_score = shortestDistToMyFlagScoreLocation.getDistance(bot_pos);
+    	        
+    	        	// Distance to flagbases
+    	        	distance_enemy_flagbase = shortestDistToEnemyFlagSpawnLocation.getDistance(bot_pos); 
+    	        	distance_me_flagbase = shortestDistToEnemyFlagSpawnLocation.getDistance(bot_pos);
+		
+    	}
+    	else{
+   
+           	// Get distance to all different elements   	
+        	distance_my_flag = shortestDistToMyFlagLocation.getDistance(bot_pos);   	
+        	distance_enemy_flag = shortestDistToEnemyFlagLocation.getDistance(bot_pos);
+        	
+        	// Distance to enemy spawn location
+        	distance_enemy_spawn = shortestDistToEnemyBotSpawnLocation.getDistance(bot_pos);
+        	distance_my_spawn = shortestDistToMyBotSpawnLocation.getDistance(bot_pos);
+        	
+        	// Distance to flag sore positions
+        	
+        	distance_enemy_score = shortestDistToEnemyFlagScoreLocation.getDistance(bot_pos);
+        	distance_me_score = shortestDistToMyFlagScoreLocation.getDistance(bot_pos);
+        
+        	// Distance to flagbases
+        	distance_enemy_flagbase = shortestDistToEnemyFlagSpawnLocation.getDistance(bot_pos); 
+        	distance_me_flagbase = shortestDistToEnemyFlagSpawnLocation.getDistance(bot_pos);
+
+    	}
+    	
+    	int sees_enemies = 0;
+    	if(bot.getVisibleEnemies().size() >0)
+    	{
+    		sees_enemies = 1;
+    	}
     	// Visibility of tile bot is on
     	Tile t = Tile.get( (int) bot.getPosition().getX(), (int) bot.getPosition().getY());
     	int visibility = t.getVisibilityPercentage();
@@ -322,23 +366,13 @@ public class MyCommander extends SandboxCommander {
     	// Orientation of the bot
     	Vector2 bot_facing = bot.getFacingDirection();
     	
-    	int nearest_enemy;
     	
-    	if(bot.getTeam()== "Terminator")
-    	{
-    		for(MyBotInfo myBot: myBots)
-    		{
-    			if(myBot.name == bot_name)
-    			{
-    				nearest_enemy = distToNearestEnemy(myBot);
-    			}
-    		}
-    		
-    	}
     	//In case bot is really one of my team 
     	// TODO: fix distToNearestEnemy
-    	nearest_enemy = 0;
     	
+    	// Current game time, good for sighting data
+        currTimeMs = (int)(1000*gameInfo.getMatchInfo().getTimePassed());
+
     	//System.out.printf(" Distance to my flag spawn %d\n", distance_me_flagbase );
     	//System.out.printf(" Distance to my flag deliver %d\n", distance_me_score);
     	
@@ -346,14 +380,14 @@ public class MyCommander extends SandboxCommander {
     	
     	// Construct a string containing all information necessary for classification
     	String information = bot_name.substring(bot_name.length()-1) + ", " + b.ordinal() + ", "  + 
-    			Float.toString(bot_pos.getX()) + ", " + Float.toString(bot_pos.getY()) + 
-    			", " + Float.toString(bot_facing.getX()) + ", " + Float.toString(bot_facing.getY()) +
+    			(int)bot_pos.getX() + ", " + (int) bot_pos.getY() + 
+    		 ", " + Float.toString((float) Utils.getFacingAngle(bot_facing.getX(), bot_facing.getY())) +
     			", " + distance_enemy_flag + ", " + distance_my_flag + 
     			", " + distance_enemy_spawn + ", " + distance_my_spawn +
     			", " + distance_enemy_score + ", " + distance_me_score + 
     			", " + distance_enemy_flagbase + ", " + distance_me_flagbase + 
-    			", " + visibility + ", " + nearest_enemy +
-      			", " + state.ordinal();
+    			", " + visibility + ", " + nearest_seen_enemy + ", " + sees_enemies + 
+      			", " + state.ordinal() + ", " + currTimeMs;
     	
     	// Check if a switch in behaviour has occured
     	Behaviours past_b = last_behaviour.remove(bot.getName());
@@ -456,6 +490,56 @@ public class MyCommander extends SandboxCommander {
     	}
     }
     
+    /*
+    public Stack<Tile> a_star(Vector2 begin, Vector2 end)
+    {
+    	Tile end_tile = Tile.get(end);
+    	List<Tile> closed_set = new ArrayList<Tile>();
+    	Comparator<Stack<Tile>> comparator = new ValueComparator(Tile.get(end));
+    	PriorityQueue<Stack<Tile>> open_set = new PriorityQueue<Stack<Tile>>(11, comparator);
+    	List<Tile> open_set2 = new ArrayList<Tile>();
+    	Stack<Tile> s = new Stack<Tile>();
+    	s.add(Tile.get(begin));
+    	open_set.add(s);
+    	open_set2.add(Tile.get(begin));
+    	closed_set.add(Tile.get(begin));
+    	
+    	while(open_set.size() > 0)
+    	{
+    		Stack<Tile> p = open_set.poll();
+    		if(p.peek().x == end_tile.x && p.peek().y == end_tile.y)
+    		{
+    			return p;
+    		}
+    		else{
+    			closed_set.add(p.peek());
+    			List<Tile> actions = possible_actions(p.peek());
+    			for(Tile action: actions)
+    			{
+    				int tentative_g = p.size() + 1;
+    				if(contains(closed_set, action))
+    				{
+    					if(tentative_g >= )
+    					{
+    						continue;
+    					}
+    				}
+    				if(!contains(open_set2, action) || tentative_g >= ValueComparator.g(action))
+    				{
+    					
+    					p.add(action);
+    					
+    					open_set.add((Stack<Tile>) p.clone());
+    					open_set2.add(action);
+    					p.pop();
+    					
+    				}
+    			}
+    		}
+    	}
+    	return null;
+    }
+    */
     /*
      * Author: Inge Becht
      * Creates a breadth first search for finding the distance between two particular tiles. 
@@ -585,7 +669,6 @@ public class MyCommander extends SandboxCommander {
         walkable = new boolean[width][height];
         nrWalkableTiles = 0;
 
-        // Determine walkability of each tile
         for (int i = 0; i < width; ++i) {
             int[] heights = levelInfo.getBlockHeights()[i];
             for (int j = 0; j < height; ++j) {
@@ -594,13 +677,18 @@ public class MyCommander extends SandboxCommander {
                 t.isWalkable = walkable[i][j];
                 // Shootable is in case length 0 or 1?
                 t.isShootable = heights[j] < 2;
-
+           
                 // Increment number of walkable tiles
                 if (t.isWalkable) {
                     ++nrWalkableTiles;
                 }
             }
         }
+        
+       
+        
+ 
+   
         int firingDistance = (int)levelInfo.getFiringDistance();
         for (int i = 0; i < width; ++i) {
             for (int j = 0; j < height; ++j) {
@@ -633,7 +721,9 @@ public class MyCommander extends SandboxCommander {
         // Create a map that calculates ditances from one point to every other
         // point from the map.
         shortestDistToMyBotSpawnLocation = calcWalkDistance(Utils.getCenter(levelInfo.getBotSpawnAreas().get(myTeam)), unitCost);
+        shortestDistToEnemyBotSpawnLocation= calcWalkDistance(Utils.getCenter(levelInfo.getBotSpawnAreas().get(enemyTeam)), unitCost);
         shortestDistToMyFlagLocation = calcWalkDistance(myFlagLocation, unitCost);
+        shortestDistToEnemyFlagLocation = calcWalkDistance(enemyFlagLocation, unitCost);
         shortestDistToMyFlagScoreLocation = calcWalkDistance(myFlagScoreLocation, unitCost);
         shortestDistToMyFlagSpawnLocation = calcWalkDistance(myFlagSpawnLocation, unitCost);
         shortestDistToEnemyFlagScoreLocation = calcWalkDistance(enemyFlagScoreLocation, unitCost);
@@ -646,6 +736,104 @@ public class MyCommander extends SandboxCommander {
                 //shortestDistToEnemyFlagScoreLocation,
                 //shortestDistToEnemyFlagSpawnLocation,
         };
+        
+        //Write information about walkable, distance to POI and visibility to file
+        //MAPINFO
+        
+        String path = "../Terminator_Classifier/Data/Terminator/MapInfo.csv";
+    	File f = new File(path);
+    	File p = new File("../Terminator_Classifier/Data/Terminator/ALL.csv");
+    	
+    	// Create directory in case it doesn't exist
+    	f.getParentFile().mkdirs();
+    	p.getParentFile().mkdirs();
+    
+    	try {
+			f.createNewFile();
+			FileWriter fstream = new FileWriter(path, true);
+			FileReader fstream2 = new FileReader(path);
+			BufferedWriter out = new BufferedWriter(fstream);
+			BufferedReader read = new BufferedReader(fstream2);
+			// In case the file is still empty add information line
+			
+				out.write("PositionX, PositionY, is_walkable, " +
+					"is_shootable,  " + 
+					"DistanceToEnemyFlag, DistanceToOwnFlag, " +
+					"DistanceToEnemyBase, DistanceToOwnBase, " +
+					"DistanceToEnemyFlagScore, DistanceToOwnFlagScore, " +
+					"DistanceToEnemyFlagSpawn, DistanceToOwnFlagSpawn, " +
+					"Visibility");	
+				out.newLine();
+
+				int distance_enemy_flag = 0, distance_my_flag = 0;
+		    	int distance_enemy_spawn = 0, distance_my_spawn = 0;
+		    	int distance_enemy_flagbase = 0, distance_me_flagbase = 0;
+		    	int distance_enemy_score = 0, distance_me_score = 0;
+		    	
+
+		    	int tile_walkable = 0;
+		        int tile_shootable = 0;
+		        	
+		       	// Determine walkability of each tile
+		        for (int i = 0; i < width; ++i) {
+		            int[] heights = levelInfo.getBlockHeights()[i];
+		            for (int j = 0; j < height; ++j) {
+		                walkable[i][j] = heights[j] == 0;
+		                Tile t = Tile.get(i, j);
+		                t.isWalkable = walkable[i][j];
+		                // Shootable is in case length 0 or 1?
+		                t.isShootable = heights[j] < 2;
+		                if (t.isWalkable)
+		                {
+		                	 tile_walkable = 1;
+		                }
+		                if(t.isShootable)
+		                {
+		                	tile_shootable =1;
+		                }
+		            	// Get distance to all different elements   	
+			        	distance_my_flag = shortestDistToMyFlagLocation.getDistance(t.x,t.y);
+			        	distance_enemy_flag = shortestDistToEnemyFlagLocation.getDistance(t.x, t.y);
+			        	
+			        	// Distance to enemy spawn location
+			        	distance_enemy_spawn = shortestDistToEnemyBotSpawnLocation.getDistance(t.x, t.y);
+			        	distance_my_spawn = shortestDistToMyBotSpawnLocation.getDistance(t.x, t.y);
+			        	
+			        	// Distance to flag sore positions
+			        	
+			        	distance_enemy_score = shortestDistToEnemyFlagScoreLocation.getDistance(t.x, t.y);
+			        	distance_me_score = shortestDistToMyFlagScoreLocation.getDistance(t.x, t.y);
+			        
+			        	// Distance to flagbases
+			        	distance_enemy_flagbase = shortestDistToEnemyFlagSpawnLocation.getDistance(t.x, t.y); 
+			        	distance_me_flagbase = shortestDistToEnemyFlagSpawnLocation.getDistance(t.x, t.y);
+			        
+			     		String information =
+			     		(int) t.x +", " + (int) t.y + ", "  + 
+	     				tile_walkable + ", " + tile_shootable +
+            			", " + distance_enemy_flag + ", " + distance_my_flag + 
+            			", " + distance_enemy_spawn + ", " + distance_my_spawn +
+            			", " + distance_enemy_score + ", " + distance_me_score + 
+            			", " + distance_enemy_flagbase + ", " + distance_me_flagbase + 
+            			", " + t.getVisibilityPercentage() ;
+			     		out.write(information);
+						out.newLine();
+						tile_walkable = 0;
+						tile_shootable = 0;
+		                // Increment number of walkable tiles
+		                if (t.isWalkable) {
+		                    ++nrWalkableTiles;
+		                }
+		            }
+		        }
+		        out.close();
+		        read.close();		 
+			
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+        
         // Initialise first values by simulating an attack by enemy by first
         // calculating path to our flag and then their score base.
         prepareAttackedByEnemy();
@@ -653,7 +841,7 @@ public class MyCommander extends SandboxCommander {
     }
 
     /*
-     * Author: Inge Bect
+     * Author: Inge Becht
      * Check if string is in the list
      */
     public boolean is_in_list(List<String> list, String s)
@@ -667,6 +855,49 @@ public class MyCommander extends SandboxCommander {
     	}
     	return false;
     }
+    public boolean is_in_list(List<Tile> list, Tile t)
+    {
+    	for(Tile lt: list)
+    	{
+    		if(lt.x == t.x && lt.y == t.y)
+    		{
+    			return true;
+    		}
+    	}
+    	return false;
+    }
+    
+    /*
+     * Author: Inge Becht
+     * Gives list of tiles that are seen at that moment
+     */
+    public List<Tile> seen_tiles()
+    {
+    	List<Tile> seen = new ArrayList<Tile>();
+    
+    	for(MyBotInfo b: myBots)
+    	{
+  
+    		float r = levelInfo.getFovAngle(b.bot.getState());
+    		Tile t = Tile.get(b.bot.getPosition());
+    		double facing_angle = Utils.getFacingAngle(b.bot.getFacingDirection());
+    		double angles[] = t.seenAngles;
+    		Tile[] seenTiles= t.seenTiles; 
+    		 for (int i = 0; i < seenTiles.length; ++i) {
+    	         if (Utils.isWithinAngle(angles[i], facing_angle, b.bot.getState())) {
+    	         }
+    	         	if(!is_in_list(seen, seenTiles[i]))
+    	         	{
+    	         		seen.add(seenTiles[i]);
+    	         	}
+    	        	 
+    	         }
+
+    	}
+    	return seen;
+   
+    }
+ 
 
     //------------------------------------------------------------------------------------------------------
     // TICK
@@ -683,13 +914,13 @@ public class MyCommander extends SandboxCommander {
     @Override
     public void tick() {
         ++nrTicks;
+        
         TeamInfo team = gameInfo.getMyTeamInfo();
         List<String> bot_names = team.getMembers();
        
         
         List<String> already_added = new ArrayList<String>();
         
-        //TODO: Fix this code
         // Loop through my bots
         for(String bot_name: bot_names)
         {
@@ -700,20 +931,20 @@ public class MyCommander extends SandboxCommander {
         	// All seen bots need to be collected data on (but only if not done already)
         	for(String enemy_name: visible_enemies)
         	{
-        		if(is_in_list(already_added, enemy_name)){
-        			continue;
-        		}
+        		if(is_in_list(already_added, enemy_name)) continue;
         		else{
         			already_added.add(enemy_name);
-        			//collect_data(Behaviours.MISC, gameInfo.getBotInfo(enemy_name));
+        			collect_data(Behaviours.MISC, gameInfo.getBotInfo(enemy_name));
         		}
-        		
         	}
         }
         
+        // Tiles that can be seen at that tick.
+        // TODO: What do i doooo with these?
+        List<Tile> seen_tiles = seen_tiles();
         
         try {
-            myTick();
+          myTick();
         } catch (RuntimeException e) {
             e.printStackTrace();
             System.err.println("Exception at tick " + nrTicks);
@@ -922,6 +1153,7 @@ public class MyCommander extends SandboxCommander {
                                 if (defender.getPosition().distance(myFlagLocation) < 10) {
                                     List<Vector2> wayPoints = toVector2List(path, false);
                                     //issueAttackCmd(bot, wayPoints, myFlagLocation, "defend my flag");
+                            
                                     issueAttackCmd(bot, wayPoints, myFlagLocation, "DEFEND LIKE CRAY CRAY");
                                 } else {
                                     //issueChargeOrAttack(bot, path, "defend my flag");
@@ -2240,6 +2472,26 @@ public class MyCommander extends SandboxCommander {
     private float getTimeSinceLastCommand(MyBotInfo bot) {
         return gameInfo.getMatchInfo().getTimePassed() - bot.timeOfLastOrder;
     }
+    
+    /*
+     * Author: Inge Becht
+     * Returns the distance of the nearest visible enemy.
+     * 
+     */
+    private int DistanceNearestVisibleEnemy(BotInfo bot) {
+        int nearestDist = 999999;
+        for (String name : bot.getVisibleEnemies()) {
+            BotInfo enemy = gameInfo.getBotInfo(name);
+            if (enemy.getPosition() != null) {
+                int dist = (int) bot.getPosition().distance(enemy.getPosition());
+                if (dist < nearestDist) {  
+                    nearestDist = dist;
+                }
+            }
+        }
+        return nearestDist;
+    }
+    
 
     private BotInfo findNearestVisibleEnemy(BotInfo bot) {
         float nearestDist = 1000000;
@@ -2727,3 +2979,4 @@ public class MyCommander extends SandboxCommander {
 
     }
 }
+
