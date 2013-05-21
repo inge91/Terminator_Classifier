@@ -938,7 +938,10 @@ public class MyCommander extends SandboxCommander {
         		}
         	}
         }
-        
+        Map<String, Vector2> m = levelInfo.getFlagSpawnLocations();
+        Vector2 b= m.get(team.getName());
+        System.out.printf("Vector: %f %f\n", b.getX(), b.getY());
+        System.out.printf("V: %f %f\n",  enemyFlagSpawnLocation.getX(), enemyFlagSpawnLocation.getY());
         // Tiles that can be seen at that tick.
         // TODO: What do i doooo with these?
         List<Tile> seen_tiles = seen_tiles();
