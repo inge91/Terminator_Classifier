@@ -112,6 +112,7 @@ public class MyCommander extends SandboxCommander {
     int currTimeMs;
     /** When we last saw each tile (game time stamp in milliseconds) */
     int[][] lastSeenMs;
+    
 
     int gameSpeed = 1000;
     Distance shortestDistToMyBotSpawnLocation;
@@ -151,6 +152,9 @@ public class MyCommander extends SandboxCommander {
     // For every bot contains its last enum state so that transitions can be found
     Dictionary<String, Behaviours> last_behaviour = new Hashtable<String, Behaviours>();
     
+    
+    // The random forest classifier
+    Classifier RF;
 
     /** Commands issued this tick (for debugging) */
     List<BotCommand> issuedCmds = new ArrayList<BotCommand>();
@@ -638,6 +642,8 @@ public class MyCommander extends SandboxCommander {
             // display the command descriptions next to the bot labels
             verbose = true;
             
+            // Initialise the Random Forest Classifier
+            RF = new Classifier();
         
             TeamInfo team = gameInfo.getMyTeamInfo();
             List<String> team_members = team.getMembers();
